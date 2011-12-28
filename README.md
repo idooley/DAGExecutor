@@ -10,6 +10,16 @@ Installation
     TODO: add a build.xml for this codebase
 
 
+Requirements
+------------
+
+This library requires some external libraries:
+
+* [guava](http://code.google.com/p/guava-libraries/) -- Currently used for some collections support.
+* [junit](http://www.junit.org/) -- JUnit for testing
+
+
+
 Contributing
 ------------
 
