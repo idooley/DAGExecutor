@@ -1,7 +1,7 @@
 DAGExecutor
 =============
 
-A dependency based executor of Runnable Java objects in threads.
+An executor of Runnable Java objects. Each task is only executed after all tasks upon which it depends have finished.
 
 
 Installation
