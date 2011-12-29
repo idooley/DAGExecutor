@@ -19,21 +19,28 @@ package com.isaacdooley.dagexecutor;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-
 public interface DAGExecutor {
 
 	public void submit(DAG taskGraph) throws InterruptedException;
-	
-	/** @throws InterruptedException 
-	 * @retun true if the executor terminated, and false if timed-out before completing all tasks. */
-	public boolean awaitTermination(long timeout, TimeUnit units) throws InterruptedException;
+
+	/**
+	 * Blocks until all schedulable tasks have completed execution after a
+	 * shutdown request, at least one task's run() method throws an exception,
+	 * the timeout occurs, or the current thread is interrupted, whichever
+	 * happens first.
+	 * 
+	 * @retun true if the executor terminated, and false if timed-out before
+	 *        completing all tasks.
+	 */
+	public boolean awaitTermination(long timeout, TimeUnit units)
+			throws InterruptedException;
 
 	public void shutdown();
-	
+
 	public List<Runnable> shutdownNow();
-	
+
 	public boolean isShutdown();
-	
+
 	public boolean isTerminated();
-	
+
 }

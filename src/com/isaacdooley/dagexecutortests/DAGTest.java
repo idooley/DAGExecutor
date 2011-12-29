@@ -36,7 +36,7 @@ public class DAGTest {
 	
 	/** Create a DAG and pretend to schedule some tests */
 	@Test (timeout = 2000)
-	public void test() {
+	public void dagPretendSchedule() {
 
 		DAG dag = new DAG();
 		Assert.assertFalse(dag.hasTasks());
@@ -77,30 +77,62 @@ public class DAGTest {
 	}
 
 	@Test(timeout = 2000)
-	public void testSinglethreaded() throws InterruptedException {
+	public void singlethreaded() throws InterruptedException {
 		SingleThreadedDAGExecutor executor = new SingleThreadedDAGExecutor();
 		testExecutor(executor);
 	}
 
 	@Test(timeout = 2000)
-	public void testMultithreaded() throws InterruptedException {
+	public void multithreaded() throws InterruptedException {
 		MultiThreadedDAGExecutor executor = new MultiThreadedDAGExecutor();
 		testExecutor(executor);
 	}
 	
 
 	@Test(timeout = 2000)
-	public void testSinglethreadedCycle() throws InterruptedException {
+	public void singlethreadedCycle() throws InterruptedException {
 		SingleThreadedDAGExecutor executor = new SingleThreadedDAGExecutor();
 		testCycleExecutor(executor);
 	}
 
 	@Test(timeout = 2000)
-	public void testMultithreadedCycle() throws InterruptedException {
+	public void multithreadedCycle() throws InterruptedException {
 		MultiThreadedDAGExecutor executor = new MultiThreadedDAGExecutor();
 		testCycleExecutor(executor);
 	}
 
+	/** Create a DAG and pretend to schedule some tests  */
+	@Test(timeout = 2000)
+	public void variableLengthTasks() throws InterruptedException {
+		MultiThreadedDAGExecutor executor = new MultiThreadedDAGExecutor();
+
+		_result = new ArrayList<String>();
+		DAG dag = new DAG();
+		Assert.assertFalse(dag.hasTasks());
+
+		Task t0 = new Task("t0", 000);
+		Task t1 = new Task("t1", 100);
+		Task t2 = new Task("t2", 100);
+		Task t3 = new Task("t3", 150);
+
+		dag.insert(t0);
+		dag.insert(t1, t0);
+		dag.insert(t2, t1);
+		dag.insert(t3);
+		
+		executor.submit(dag);
+		executor.shutdown();
+		executor.awaitTermination(1, TimeUnit.SECONDS);
+		
+		Assert.assertFalse(dag.hasNextRunnableTask());
+		Assert.assertNull(dag.getErrors());
+		Assert.assertEquals(DAG.Status.COMPLETED_ALL_TASKS,dag.status());
+		
+		String[] expecteds = {"t0", "t1", "t3", "t2"};
+		Assert.assertArrayEquals(expecteds, _result.toArray());
+		
+	}
+	
 	/** Create a DAG and pretend to schedule some tests  */
 	public void testExecutor(DAGExecutor executor) throws InterruptedException {
 
@@ -161,16 +193,59 @@ public class DAGTest {
 	}
 	
 	
+
+	@Test(timeout = 2000)
+	public void testDeadlock() throws InterruptedException {
+
+		_result = new ArrayList<String>();
+		
+		// Build DAG that is a cycle
+		DAG dag = new DAG();
+		int numTasks = 10;
+		Task[] tasks = new Task[numTasks];
+		for(int i=0; i< numTasks; i++){
+			tasks[i] = new Task("t" + i);
+		}
+		for(int i=0; i< numTasks; i++){
+			dag.insert(tasks[i], tasks[(i+1)%numTasks]);
+		}
+		
+		MultiThreadedDAGExecutor executor = new MultiThreadedDAGExecutor();
+		executor.submit(dag);
+		executor.shutdown();
+		Assert.assertTrue(executor.awaitTermination(500, TimeUnit.MILLISECONDS));
+		
+		Assert.assertEquals(DAG.Status.INVALID_DEPENDENCIES,dag.status());
+		
+		String[] expecteds = {};
+		Assert.assertArrayEquals(expecteds, _result.toArray());
+		
+	}
+	
 	public class Task implements Runnable {
 
 		private final String _name;
+		private final long _sleepMillis;
 		
 		public Task(String name){
 			_name = name;
+			_sleepMillis = 0;
+		}
+		
+		public Task(String name, long sleepMillis) { 
+			_name = name;
+			_sleepMillis = sleepMillis;
 		}
 		
 		@Override
 		public void run() {
+			if(_sleepMillis>0){
+				try {
+					Thread.sleep(_sleepMillis);
+				} catch (InterruptedException e) {
+					// do nothing
+				}
+			}
 			_result.add(_name);
 		}
 		
