@@ -38,7 +38,7 @@
     <mkdir dir="${dist}/lib"/>
 
     <!-- Put everything in ${build} into the MyProject-${DSTAMP}.jar file -->
-    <jar jarfile="${dist}/lib/DAGExecutor-${DSTAMP}.jar" basedir="${build}"/>
+    <jar jarfile="${dist}/lib/DAGExecutor-alpha-${DSTAMP}.jar" basedir="${build}"/>
   </target>
 
   <target name="clean"
