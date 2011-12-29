@@ -8,7 +8,8 @@
   <property name="build" location="build"/>
   <property name="dist" location="dist"/>
   <property name="lib" location="lib"/>
-  
+  <property name="eclipsebin" location="bin"/>
+
   <path id="classpath">
     <fileset dir="${lib}" includes="*.jar"/>
   </path>
@@ -45,5 +46,6 @@
     <!-- Delete the ${build} and ${dist} directory trees -->
     <delete dir="${build}"/>
     <delete dir="${dist}"/>
+    <delete dir="${eclipsebin}"/>
   </target>
 </project>
