@@ -16,7 +16,6 @@
 
 package com.isaacdooley.dagexecutor;
 
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -32,46 +31,72 @@ public class MultiThreadedDAGExecutor implements DAGExecutor {
 	/**
 	 * A pool of threads for running tasks in the DAG itself.
 	 */
-	ExecutorService _taskPool = Executors.newCachedThreadPool();
-	
+	final private ExecutorService _taskPool;
+
 	/**
 	 * A pool of threads for use in managing the execution of the DAG
 	 */
-	ExecutorService _managePool = Executors.newCachedThreadPool();
+	final private ExecutorService _managePool;
 
-	@Override
-	public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-		return	_managePool.awaitTermination(timeout, unit);
+	/**
+	 * Create a DAGExecutor that schedules tasks in a CachedThreadPool
+	 * consisting of as many threads as needed at a time to schedule all
+	 * available tasks in the DAG.
+	 */
+	public MultiThreadedDAGExecutor() {
+		_taskPool = Executors.newCachedThreadPool();
+		_managePool = Executors.newCachedThreadPool();
+	}
+
+	/**
+	 * Create a DAGExecutor that schedules tasks in a FixedThreadPool consisting
+	 * of at most the specified number of threads.
+	 */
+	public MultiThreadedDAGExecutor(int maxNumWorkerThreads) {
+		_taskPool = Executors.newFixedThreadPool(maxNumWorkerThreads);
+		_managePool = Executors.newCachedThreadPool();
 	}
 
 	@Override
-	public boolean isShutdown() {
+	public final boolean awaitTermination(long timeout, TimeUnit unit)
+			throws InterruptedException {
+		return _managePool.awaitTermination(timeout, unit);
+	}
+
+	@Override
+	public final boolean isShutdown() {
 		return _managePool.isShutdown();
 	}
 
 	@Override
-	public boolean isTerminated() {
+	public final boolean isTerminated() {
 		return _managePool.isTerminated();
 	}
 
 	@Override
-	public void shutdown() {
+	public final void shutdown() {
 		_managePool.shutdown();
 	}
 
 	@Override
-	public List<Runnable> shutdownNow() {
+	public final void shutdownNow() {
 		_managePool.shutdownNow();
 		_taskPool.shutdownNow();
-		// FIXME: return the tasks in the dag that haven't finished
-		return null;
 	}
 
 	@Override
-	public void submit(DAG taskGraph) throws InterruptedException {
+	public final void submit(DAG taskGraph) 
+	throws InterruptedException, DependencyDoesNotExistException {
+		// Verify task graph is valid
+		taskGraph.verifyValidGraph();
+		
 		_managePool.execute(new Runner(taskGraph));
 	}
 
+	/**
+	 * The management thread that schedules available tasks from the DAG as they
+	 * become runnable
+	 */
 	private class Runner implements Runnable {
 		final DAG _taskGraph;
 		final CountDownLatch _completed = new CountDownLatch(1);
@@ -86,20 +111,20 @@ public class MultiThreadedDAGExecutor implements DAGExecutor {
 			try {
 				ArrayBlockingQueue<RunnableWrapper> completionQueue = new ArrayBlockingQueue<RunnableWrapper>(
 						_taskGraph.numTasks());
-				
+
 				long currentlyExecuting = 0;
-				
+
 				while (true) {
 					while (_taskGraph.hasNextRunnableTask()) {
 						Runnable t = _taskGraph.nextRunnableTask();
 						RunnableWrapper wrapper = new RunnableWrapper(t,
 								completionQueue);
-						currentlyExecuting ++;
+						currentlyExecuting++;
 						_taskPool.execute(wrapper);
 					}
 
 					// Wait for one or more of the tasks to complete
-					if(currentlyExecuting>0){
+					if (currentlyExecuting > 0) {
 						do {
 							RunnableWrapper rw = completionQueue.take();
 							currentlyExecuting--;
@@ -110,14 +135,15 @@ public class MultiThreadedDAGExecutor implements DAGExecutor {
 							}
 						} while (!completionQueue.isEmpty());
 					}
-					
+
 					// Stop if we encountered any exceptions
 					if (_taskGraph.getErrors() != null)
 						return;
 
 					// Stop if we have no runnable tasks (perhaps a cycle of
 					// non-schedulable tasks remains)
-					if (!_taskGraph.hasNextRunnableTask() && currentlyExecuting==0)
+					if (!_taskGraph.hasNextRunnableTask()
+							&& currentlyExecuting == 0)
 						return;
 
 				}
@@ -130,10 +156,15 @@ public class MultiThreadedDAGExecutor implements DAGExecutor {
 		}
 	}
 
+	/**
+	 * A wrapper Runnable object that calls run() on a provided Runnable object,
+	 * providing notification of the completion of the other object's run()
+	 * method. Also records anything thrown by the other object's run() method.
+	 */
 	private class RunnableWrapper implements Runnable {
-		final Runnable _innerTask;
-		Throwable _err = null;
-		final ArrayBlockingQueue<RunnableWrapper> _completionQueue;
+		private final Runnable _innerTask;
+		private final ArrayBlockingQueue<RunnableWrapper> _completionQueue;
+		private Throwable _err = null;
 
 		RunnableWrapper(Runnable r,
 				ArrayBlockingQueue<RunnableWrapper> completionQueue) {

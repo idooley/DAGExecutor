@@ -16,7 +16,6 @@
 
 package com.isaacdooley.dagexecutor;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 
@@ -44,8 +43,7 @@ public class SingleThreadedDAGExecutor implements DAGExecutor {
 	}
 
 	@Override
-	public List<Runnable> shutdownNow() {
-		return null;
+	public void shutdownNow() {
 	}
 
 	@Override

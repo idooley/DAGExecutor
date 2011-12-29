@@ -16,12 +16,26 @@
 
 package com.isaacdooley.dagexecutor;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public interface DAGExecutor {
 
-	public void submit(DAG taskGraph) throws InterruptedException;
+	/**
+	 * Submit a graph of tasks for execution. The tasks in the specified
+	 * taskGraph will be executed in an order that respects the dependencies
+	 * specified in the graph. No task will be run until all its dependencies
+	 * have finished running successfully (not thrown any exceptions).
+	 * 
+	 * @param taskGraph
+	 *            A graph of tasks to execute
+	 * @throws InterruptedException
+	 *             The calling thread has been interrupted
+	 * @throws DependencyDoesNotExistException
+	 *             The specified graph contains dependency tasks that have not
+	 *             yet been added to the graph (thus it is not really a graph).
+	 */
+	public void submit(DAG taskGraph) 
+			throws InterruptedException, DependencyDoesNotExistException;
 
 	/**
 	 * Blocks until all schedulable tasks have completed execution after a
@@ -35,10 +49,22 @@ public interface DAGExecutor {
 	public boolean awaitTermination(long timeout, TimeUnit units)
 			throws InterruptedException;
 
+	/**
+	 * Gracefully shutdown the executor. New calls to submit() will fail, and
+	 * already submitted tasks will be executed.
+	 * 
+	 * @retun true if the executor terminated, and false if timed-out before
+	 *        completing all tasks.
+	 */
 	public void shutdown();
 
-	public List<Runnable> shutdownNow();
+	/**
+	 * Immediately initiate a shutdown of the executor. New calls to submit()
+	 * will fail, and all currently executing tasks will be interrupted.
+	 */
+	public void shutdownNow();
 
+	
 	public boolean isShutdown();
 
 	public boolean isTerminated();

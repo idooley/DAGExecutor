@@ -26,6 +26,7 @@ import org.junit.Test;
 
 import com.isaacdooley.dagexecutor.DAG;
 import com.isaacdooley.dagexecutor.DAGExecutor;
+import com.isaacdooley.dagexecutor.DependencyDoesNotExistException;
 import com.isaacdooley.dagexecutor.MultiThreadedDAGExecutor;
 import com.isaacdooley.dagexecutor.SingleThreadedDAGExecutor;
 
@@ -34,9 +35,9 @@ public class DAGTest {
 
 	List<String> _result = Collections.synchronizedList(new ArrayList<String>());
 	
-	/** Create a DAG and pretend to schedule some tests */
+	/** Create a DAG and pretend to schedule some tests  */
 	@Test (timeout = 2000)
-	public void dagPretendSchedule() {
+	public void dagPretendSchedule() throws DependencyDoesNotExistException {
 
 		DAG dag = new DAG();
 		Assert.assertFalse(dag.hasTasks());
@@ -77,33 +78,37 @@ public class DAGTest {
 	}
 
 	@Test(timeout = 2000)
-	public void singlethreaded() throws InterruptedException {
+	public void singlethreaded() 
+	throws InterruptedException, DependencyDoesNotExistException {
 		SingleThreadedDAGExecutor executor = new SingleThreadedDAGExecutor();
 		testExecutor(executor);
 	}
 
 	@Test(timeout = 2000)
-	public void multithreaded() throws InterruptedException {
+	public void multithreaded() 
+	throws InterruptedException, DependencyDoesNotExistException {
 		MultiThreadedDAGExecutor executor = new MultiThreadedDAGExecutor();
 		testExecutor(executor);
 	}
 	
 
 	@Test(timeout = 2000)
-	public void singlethreadedCycle() throws InterruptedException {
+	public void singlethreadedCycle() 
+	throws InterruptedException, DependencyDoesNotExistException {
 		SingleThreadedDAGExecutor executor = new SingleThreadedDAGExecutor();
 		testCycleExecutor(executor);
 	}
 
 	@Test(timeout = 2000)
-	public void multithreadedCycle() throws InterruptedException {
+	public void multithreadedCycle() 
+	throws InterruptedException, DependencyDoesNotExistException {
 		MultiThreadedDAGExecutor executor = new MultiThreadedDAGExecutor();
 		testCycleExecutor(executor);
 	}
 
 	/** Create a DAG and pretend to schedule some tests  */
 	@Test(timeout = 2000)
-	public void variableLengthTasks() throws InterruptedException {
+	public void variableLengthTasks() throws InterruptedException, DependencyDoesNotExistException {
 		MultiThreadedDAGExecutor executor = new MultiThreadedDAGExecutor();
 
 		_result = new ArrayList<String>();
@@ -134,7 +139,7 @@ public class DAGTest {
 	}
 	
 	/** Create a DAG and pretend to schedule some tests  */
-	public void testExecutor(DAGExecutor executor) throws InterruptedException {
+	public void testExecutor(DAGExecutor executor) throws InterruptedException, DependencyDoesNotExistException {
 
 		_result = new ArrayList<String>();
 		DAG dag = new DAG();
@@ -165,7 +170,8 @@ public class DAGTest {
 	
 
 	/** Create a DAG and pretend to schedule some tests  */
-	public void testCycleExecutor(DAGExecutor executor) throws InterruptedException {
+	public void testCycleExecutor(DAGExecutor executor) 
+	throws InterruptedException, DependencyDoesNotExistException {
 
 		_result = new ArrayList<String>();
 		DAG dag = new DAG();
@@ -195,7 +201,8 @@ public class DAGTest {
 	
 
 	@Test(timeout = 2000)
-	public void testDeadlock() throws InterruptedException {
+	public void testDeadlock() 
+	throws InterruptedException, DependencyDoesNotExistException {
 
 		_result = new ArrayList<String>();
 		
